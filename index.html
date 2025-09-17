@@ -6,18 +6,30 @@
     <title>Peta UMKM Kalimantan Tengah</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <!-- Papa Parse for CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="container mx-auto px-4 py-4">
-            <div class="flex items-center space-x-3">
-                <div class="bg-green-600 p-2 rounded-lg">
-                    <i class="fas fa-map-marked-alt text-white text-lg"></i>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-green-600 p-2 rounded-lg">
+                        <i class="fas fa-map-marked-alt text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Peta UMKM Kalimantan Tengah</h1>
+                        <p class="text-gray-600 text-sm">Persebaran UMKM di Bumi Tambun Bungai</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="text-xl font-bold text-gray-800">Peta UMKM Kalimantan Tengah</h1>
-                    <p class="text-gray-600 text-sm">Persebaran UMKM di Bumi Tambun Bungai</p>
+                <div id="dataStatus" class="text-sm text-gray-600">
+                    <i class="fas fa-spinner fa-spin mr-1"></i>
+                    Loading data...
                 </div>
             </div>
         </div>
@@ -26,52 +38,73 @@
     <!-- Main Content -->
     <div class="container mx-auto px-4 py-6">
         <!-- Stats Cards -->
-        <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
                 <div class="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
                     <i class="fas fa-store text-green-600"></i>
                 </div>
-                <p class="text-gray-800 font-medium text-sm">UMKM Tersebar</p>
+                <p class="text-gray-800 font-medium text-sm">Total UMKM</p>
+                <p id="totalUMKM" class="text-green-600 font-bold text-lg">-</p>
             </div>
             
             <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
                 <div class="bg-yellow-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <i class="fas fa-users text-yellow-600"></i>
+                    <i class="fas fa-map-pin text-yellow-600"></i>
                 </div>
-                <p class="text-gray-800 font-medium text-sm">Pemberdayaan</p>
+                <p class="text-gray-800 font-medium text-sm">Lokasi</p>
+                <p id="totalLokasi" class="text-yellow-600 font-bold text-lg">-</p>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
+                <div class="bg-purple-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <i class="fas fa-tags text-purple-600"></i>
+                </div>
+                <p class="text-gray-800 font-medium text-sm">Jenis</p>
+                <p id="totalJenis" class="text-purple-600 font-bold text-lg">-</p>
             </div>
             
             <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
                 <div class="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
                     <i class="fas fa-chart-line text-blue-600"></i>
                 </div>
-                <p class="text-gray-800 font-medium text-sm">Pertumbuhan</p>
+                <p class="text-gray-800 font-medium text-sm">Status</p>
+                <p id="mapStatus" class="text-blue-600 font-bold text-lg">Ready</p>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div class="flex items-center mb-3">
+                <i class="fas fa-palette text-green-600 mr-2"></i>
+                <h3 class="font-semibold text-gray-800">Legenda Jenis UMKM</h3>
+            </div>
+            <div id="legend" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <!-- Legend will be populated dynamically -->
             </div>
         </div>
 
         <!-- Map Section -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-green-600 p-4">
-                <h2 class="text-lg font-semibold text-white">Peta Lokasi UMKM</h2>
+            <div class="bg-green-600 p-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Peta Lokasi UMKM</h2>
+                    <p class="text-green-100 text-sm">Data real-time dari Google Sheets</p>
+                </div>
+                <button onclick="refreshData()" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-white text-sm transition-colors">
+                    <i class="fas fa-sync-alt mr-1"></i>
+                    Refresh
+                </button>
             </div>
             
             <div class="relative">
-                <iframe 
-                    src="https://www.google.com/maps/d/embed?mid=1q5J1K2UOtMWhMVPLFLzb9WJcAsauzrA&ehbc=2E312F"
-                    width="100%" 
-                    height="600"
-                    style="border:0;"
-                    allowfullscreen=""
-                    loading="lazy"
-                    referrerpolicy="no-referrer-when-downgrade"
-                    class="w-full">
-                </iframe>
+                <!-- Map Container -->
+                <div id="map" style="height: 500px; width: 100%;"></div>
                 
                 <!-- Loading overlay -->
-                <div id="loading" class="absolute inset-0 bg-gray-50 flex items-center justify-center">
+                <div id="loading" class="absolute inset-0 bg-gray-50 flex items-center justify-center z-10">
                     <div class="text-center">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
-                        <p class="text-gray-600 text-sm">Memuat peta...</p>
+                        <p class="text-gray-600 text-sm">Memuat peta dan data UMKM...</p>
                     </div>
                 </div>
             </div>
@@ -85,8 +118,8 @@
                     <h3 class="font-semibold text-gray-800">Tentang Peta</h3>
                 </div>
                 <p class="text-gray-700 text-sm leading-relaxed">
-                    Peta ini menampilkan persebaran UMKM di seluruh Kalimantan Tengah yang berkontribusi 
-                    dalam perekonomian daerah dan pemberdayaan masyarakat lokal.
+                    Peta ini mengambil data UMKM secara real-time dari Google Sheets dan menampilkan 
+                    lokasi berdasarkan koordinat latitude dan longitude dengan icon sesuai jenis usaha.
                 </p>
             </div>
             
@@ -96,9 +129,23 @@
                     <h3 class="font-semibold text-gray-800">Cara Menggunakan</h3>
                 </div>
                 <ul class="text-gray-700 text-sm space-y-1">
-                    <p>peta ini dibuat menggunakan google my maps</p>
+                    <li>• Klik pin dengan icon sesuai jenis untuk detail UMKM</li>
+                    <li>• Zoom in/out untuk area yang lebih spesifik</li>
+                    <li>• Lihat legenda untuk memahami jenis UMKM</li>
+                    <li>• Klik Refresh untuk memuat data terbaru</li>
                 </ul>
             </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="relative max-w-4xl max-h-screen p-4">
+            <button onclick="closeImageModal()" class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75">
+                <i class="fas fa-times"></i>
+            </button>
+            <img id="modalImage" src="" alt="" class="max-w-full max-h-full object-contain rounded">
+            <p id="modalCaption" class="text-white text-center mt-2"></p>
         </div>
     </div>
 
@@ -115,15 +162,284 @@
     </footer>
 
     <script>
-        // Hide loading overlay when iframe loads
-        window.addEventListener('load', function() {
-            setTimeout(() => {
-                const loading = document.getElementById('loading');
-                if (loading) {
-                    loading.style.display = 'none';
+        let map;
+        let markers = [];
+        
+        // Dynamic icon configuration - mudah untuk ditambah
+        const umkmIcons = {
+            'makanan': { icon: 'fa-utensils', color: '#dc2626' },
+            'minuman': { icon: 'fa-coffee', color: '#7c3aed' },
+            'kerajinan': { icon: 'fa-shopping-bag', color: '#059669' },
+            'tekstil': { icon: 'fa-tshirt', color: '#0891b2' },
+            'furniture': { icon: 'fa-chair', color: '#ea580c' },
+            'elektronik': { icon: 'fa-mobile-alt', color: '#4338ca' },
+            'otomotif': { icon: 'fa-car', color: '#374151' },
+            'jasa': { icon: 'fa-hands-helping', color: '#9333ea' },
+            'pertanian': { icon: 'fa-seedling', color: '#16a34a' },
+            'perikanan': { icon: 'fa-fish', color: '#0284c7' },
+            'kosmetik': { icon: 'fa-palette', color: '#ec4899' },
+            'farmasi': { icon: 'fa-pills', color: '#dc2626' },
+            'default': { icon: 'fa-store', color: '#6b7280' }
+        };
+        
+        // CSV URL from Google Sheets (convert to CSV export)
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS2VYB_TLIqZQU9l2WIyZsf0uVMhpPurSD-5Zj0QmSIm_z5mIeQtF56r5zWXV_JIRYGRfVoFq397HBO/pub?output=csv';
+        
+        // Initialize map
+        function initMap() {
+            // Center on Central Kalimantan
+            map = L.map('map').setView([-1.6815, 113.3824], 8);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+            
+            // Load data from Google Sheets
+            loadUMKMData();
+        }
+        
+        // Create custom icon based on type
+        function createCustomIcon(type) {
+            const iconConfig = umkmIcons[type?.toLowerCase()] || umkmIcons.default;
+            
+            const iconHtml = `
+                <div style="
+                    background-color: ${iconConfig.color};
+                    width: 35px;
+                    height: 35px;
+                    border-radius: 50% 50% 50% 0;
+                    border: 3px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transform: rotate(-45deg);
+                    position: relative;
+                ">
+                    <i class="fas ${iconConfig.icon}" style="
+                        color: white;
+                        font-size: 14px;
+                        transform: rotate(45deg);
+                    "></i>
+                </div>
+            `;
+            
+            return L.divIcon({
+                html: iconHtml,
+                className: 'custom-marker',
+                iconSize: [35, 35],
+                iconAnchor: [17, 34],
+                popupAnchor: [0, -34]
+            });
+        }
+        
+        // Load UMKM data from Google Sheets CSV
+        function loadUMKMData() {
+            updateStatus('Loading...', 'text-yellow-600');
+            
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    console.log('Data loaded:', results.data);
+                    
+                    if (results.data && results.data.length > 0) {
+                        // Clear existing markers
+                        clearMarkers();
+                        
+                        let validLocations = 0;
+                        const jenisCounter = new Set();
+                        
+                        results.data.forEach(function(row, index) {
+                            // Clean and validate data
+                            const name = row['Name'] || row['name'] || row['Nama'] || `UMKM ${index + 1}`;
+                            const address = row['Address'] || row['address'] || row['Alamat'] || 'Alamat tidak tersedia';
+                            const type = row['Type'] || row['type'] || row['Jenis'] || row['jenis'] || 'default';
+                            const images = row['Images'] || row['images'] || row['Gambar'] || row['gambar'] || '';
+                            const lat = parseFloat(row['Latitude'] || row['latitude'] || row['Lat']);
+                            const lng = parseFloat(row['Longitude'] || row['longitude'] || row['Lng']);
+                            
+                            // Check if coordinates are valid
+                            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                                addMarker(lat, lng, name, address, type, images);
+                                validLocations++;
+                                jenisCounter.add(type.toLowerCase());
+                            }
+                        });
+                        
+                        // Update statistics
+                        document.getElementById('totalUMKM').textContent = results.data.length;
+                        document.getElementById('totalLokasi').textContent = validLocations;
+                        document.getElementById('totalJenis').textContent = jenisCounter.size;
+                        updateStatus(`${validLocations} lokasi dimuat`, 'text-green-600');
+                        
+                        // Update legend
+                        updateLegend(jenisCounter);
+                        
+                        // Hide loading overlay
+                        document.getElementById('loading').style.display = 'none';
+                        
+                    } else {
+                        updateStatus('Data kosong', 'text-red-600');
+                        document.getElementById('loading').style.display = 'none';
+                    }
+                },
+                error: function(error) {
+                    console.error('Error loading data:', error);
+                    updateStatus('Error loading', 'text-red-600');
+                    document.getElementById('loading').style.display = 'none';
                 }
-            }, 1500);
+            });
+        }
+        
+        // Add marker to map
+        function addMarker(lat, lng, name, address, type, images) {
+            // Process images if available
+            let imageGallery = '';
+            if (images && images.trim()) {
+                const imageLinks = images.split(',').map(link => link.trim()).filter(link => link);
+                if (imageLinks.length > 0) {
+                    imageGallery = `
+                        <div class="mt-3 border-t pt-3">
+                            <p class="text-xs font-medium text-gray-700 mb-2">Foto UMKM:</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                ${imageLinks.slice(0, 4).map((link, index) => `
+                                    <div class="relative group cursor-pointer" onclick="openImageModal('${link}', '${name}')">
+                                        <img src="${link}" 
+                                             alt="Foto ${name}" 
+                                             class="w-full h-16 object-cover rounded border group-hover:opacity-75 transition-opacity"
+                                             onerror="this.parentElement.style.display='none'"
+                                             loading="lazy">
+                                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded transition-all flex items-center justify-center">
+                                            <i class="fas fa-search-plus text-white opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${imageLinks.length > 4 ? `<p class="text-xs text-gray-500 mt-1">+${imageLinks.length - 4} foto lainnya</p>` : ''}
+                        </div>
+                    `;
+                }
+            }
+            
+            const iconConfig = umkmIcons[type?.toLowerCase()] || umkmIcons.default;
+            
+            const marker = L.marker([lat, lng], {
+                icon: createCustomIcon(type)
+            }).bindPopup(`
+                <div class="p-3 max-w-sm">
+                    <div class="flex items-center mb-2">
+                        <div class="bg-gray-100 p-1 rounded mr-2">
+                            <i class="fas ${iconConfig.icon} text-gray-600" style="color: ${iconConfig.color}"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-sm">${name}</h3>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded capitalize">${type}</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">${address}</p>
+                    ${imageGallery}
+                    <div class="text-xs text-gray-500 mt-3 pt-2 border-t">
+                        <i class="fas fa-map-pin mr-1"></i>
+                        ${lat.toFixed(6)}, ${lng.toFixed(6)}
+                    </div>
+                </div>
+            `, { maxWidth: 300, className: 'custom-popup' })
+            .addTo(map);
+            
+            markers.push(marker);
+        }
+        
+        // Update legend
+        function updateLegend(jenisSet) {
+            const legendContainer = document.getElementById('legend');
+            legendContainer.innerHTML = '';
+            
+            Array.from(jenisSet).sort().forEach(jenis => {
+                const iconConfig = umkmIcons[jenis.toLowerCase()] || umkmIcons.default;
+                const legendItem = document.createElement('div');
+                legendItem.className = 'flex items-center space-x-2 p-2 bg-gray-50 rounded';
+                legendItem.innerHTML = `
+                    <i class="fas ${iconConfig.icon}" style="color: ${iconConfig.color}"></i>
+                    <span class="text-gray-700 capitalize">${jenis}</span>
+                `;
+                legendContainer.appendChild(legendItem);
+            });
+        }
+        
+        // Image modal functions
+        function openImageModal(imageUrl, caption) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalCaption = document.getElementById('modalCaption');
+            
+            modalImage.src = imageUrl;
+            modalCaption.textContent = caption;
+            modal.classList.remove('hidden');
+        }
+        
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+        
+        // Clear all markers
+        function clearMarkers() {
+            markers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            markers = [];
+        }
+        
+        // Update status
+        function updateStatus(message, className) {
+            const statusElement = document.getElementById('dataStatus');
+            statusElement.innerHTML = `<i class="fas fa-circle mr-1"></i>${message}`;
+            statusElement.className = `text-sm ${className}`;
+        }
+        
+        // Refresh data
+        function refreshData() {
+            document.getElementById('loading').style.display = 'flex';
+            loadUMKMData();
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeImageModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageModal();
+            }
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', function() {
+            setTimeout(initMap, 500);
         });
     </script>
+
+    <style>
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .custom-popup .leaflet-popup-tip {
+            background: white;
+        }
+        
+        .custom-marker {
+            background: none !important;
+            border: none !important;
+        }
+    </style>
 </body>
 </html>
