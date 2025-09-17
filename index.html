@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peta UMKM Kalimantan Tengah</title>
+    <title>Peta UMKM Kalimantan Tengah dengan Area</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
@@ -21,7 +21,7 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-800">Peta UMKM Kalimantan Tengah</h1>
-                        <p class="text-gray-600 text-sm">Persebaran UMKM di Bumi Tambun Bungai</p>
+                        <p class="text-gray-600 text-sm">Persebaran UMKM di Bumi Tambun Bungai dengan Area Fleksibel</p>
                     </div>
                 </div>
                 <div id="dataStatus" class="text-sm text-gray-600">
@@ -33,7 +33,7 @@
     </header>
 
     <div class="container mx-auto px-4 py-6">
-        <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-5 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
                 <div class="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
                     <i class="fas fa-store text-green-600"></i>
@@ -59,11 +59,19 @@
             </div>
             
             <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
+                <div class="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <i class="fas fa-draw-polygon text-orange-600"></i>
+                </div>
+                <p class="text-gray-800 font-medium text-sm">Area</p>
+                <p id="totalArea" class="text-orange-600 font-bold text-lg">-</p>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
                 <div class="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
                     <i class="fas fa-chart-line text-blue-600"></i>
                 </div>
                 <p class="text-gray-800 font-medium text-sm">Status</p>
-                <p id="mapStatus" class="text-blue-600 font-bold text-lg">Ready</p>
+                <p id="mapStatus" class="text-blue-600 font-bold text-lg">Loading...</p>
             </div>
         </div>
 
@@ -73,19 +81,26 @@
                 <h3 class="font-semibold text-gray-800">Legenda Jenis UMKM</h3>
             </div>
             <div id="legend" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div class="text-gray-500 italic">Memuat data...</div>
             </div>
         </div>
 
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div class="bg-green-600 p-4 flex items-center justify-between">
                 <div>
-                    <h2 class="text-lg font-semibold text-white">Peta Lokasi UMKM</h2>
-                    <p class="text-green-100 text-sm">Data real-time dari Google Sheets</p>
+                    <h2 class="text-lg font-semibold text-white">Peta Lokasi UMKM & Area</h2>
+                    <p class="text-green-100 text-sm">Data real-time dari Google Sheets dengan area polygon fleksibel</p>
                 </div>
-                <button onclick="refreshData()" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-white text-sm transition-colors">
-                    <i class="fas fa-sync-alt mr-1"></i>
-                    Refresh
-                </button>
+                <div class="flex space-x-2">
+                    <button onclick="toggleAreas()" id="toggleAreasBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-white text-sm transition-colors">
+                        <i class="fas fa-eye mr-1"></i>
+                        Sembunyikan Area
+                    </button>
+                    <button onclick="refreshData()" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-white text-sm transition-colors">
+                        <i class="fas fa-sync-alt mr-1"></i>
+                        Refresh
+                    </button>
+                </div>
             </div>
             
             <div class="relative">
@@ -94,21 +109,34 @@
                 <div id="loading" class="absolute inset-0 bg-gray-50 flex items-center justify-center z-10">
                     <div class="text-center">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
-                        <p class="text-gray-600 text-sm">Memuat peta dan data UMKM...</p>
+                        <p class="text-gray-600 text-sm">Memuat peta dan data UMKM dari Google Sheets...</p>
+                    </div>
+                </div>
+
+                <div id="errorMessage" class="absolute inset-0 bg-gray-50 flex items-center justify-center z-10 hidden">
+                    <div class="text-center max-w-md mx-4">
+                        <div class="bg-red-100 p-4 rounded-lg">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-2xl mb-2"></i>
+                            <h3 class="font-bold text-red-800 mb-2">Gagal Memuat Data</h3>
+                            <p class="text-red-700 text-sm mb-4">Tidak dapat mengambil data dari Google Sheets. Periksa koneksi internet atau URL CSV.</p>
+                            <button onclick="refreshData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">
+                                <i class="fas fa-sync-alt mr-1"></i>
+                                Coba Lagi
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
                 <div class="flex items-center mb-3">
                     <i class="fas fa-info-circle text-green-600 mr-2"></i>
                     <h3 class="font-semibold text-gray-800">Tentang Peta</h3>
                 </div>
                 <p class="text-gray-700 text-sm leading-relaxed">
-                    Peta ini mengambil data UMKM secara real-time dari Google Sheets dan menampilkan 
-                    lokasi berdasarkan koordinat latitude dan longitude dengan icon sesuai jenis usaha.
+                    Peta ini mengambil data UMKM secara real-time dari Google Sheets.
                 </p>
             </div>
             
@@ -144,6 +172,6 @@
             </div>
         </div>
     </footer>
+    <script src="src/js/script.js"></script>
 </body>
-<script src="src/js/script.js"></script>
 </html>

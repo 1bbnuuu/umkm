@@ -1,5 +1,7 @@
 let map;
 let markers = [];
+let polygons = [];
+let areasVisible = true;
 
 const umkmIcons = {
     'makanan': { icon: 'fa-utensils', color: '#dc2626' },
@@ -17,10 +19,14 @@ const umkmIcons = {
     'default': { icon: 'fa-store', color: '#6b7280' }
 };
 
+const areaColors = [
+    '#FF6B6B'
+];
+
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS2VYB_TLIqZQU9l2WIyZsf0uVMhpPurSD-5Zj0QmSIm_z5mIeQtF56r5zWXV_JIRYGRfVoFq397HBO/pub?output=csv';
 
 function initMap() {
-    map = L.map('map').setView([-1.6815, 113.3824], 8);
+    map = L.map('map').setView([-2.2088, 113.9213], 12);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -65,57 +71,95 @@ function createCustomIcon(type) {
 }
 
 function loadUMKMData() {
-    updateStatus('Loading...', 'text-yellow-600');
+    updateStatus('Mengambil data dari Google Sheets...', 'text-yellow-600');
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('errorMessage').style.display = 'none';
     
+    // Parsing data dari CSV URL menggunakan Papa Parse
     Papa.parse(csvUrl, {
         download: true,
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
-            console.log('Data loaded:', results.data);
+            console.log('Data berhasil dimuat:', results);
             
             if (results.data && results.data.length > 0) {
-                clearMarkers();
-                
-                let validLocations = 0;
-                const jenisCounter = new Set();
-                
-                results.data.forEach(function(row, index) {
-                    const name = row['Name'] || row['name'] || row['Nama'] || `UMKM ${index + 1}`;
-                    const address = row['Address'] || row['address'] || row['Alamat'] || 'Alamat tidak tersedia';
-                    const type = row['Type'] || row['type'] || row['Jenis'] || row['jenis'] || 'default';
-                    const images = row['Images'] || row['images'] || row['Gambar'] || row['gambar'] || '';
-                    const googleMapsLink = row['GoogleMaps'] || row['googlemaps'] || row['Google Maps'] || row['google_maps'] || '';
-                    const lat = parseFloat(row['Latitude'] || row['latitude'] || row['Lat']);
-                    const lng = parseFloat(row['Longitude'] || row['longitude'] || row['Lng']);
-                    
-                    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-                        addMarker(lat, lng, name, address, type, images, googleMapsLink);
-                        validLocations++;
-                        jenisCounter.add(type.toLowerCase());
-                    }
-                });
-                
-                document.getElementById('totalUMKM').textContent = results.data.length;
-                document.getElementById('totalLokasi').textContent = validLocations;
-                document.getElementById('totalJenis').textContent = jenisCounter.size;
-                updateStatus(`${validLocations} lokasi dimuat`, 'text-green-600');
-                
-                updateLegend(jenisCounter);
-                
-                document.getElementById('loading').style.display = 'none';
-                
+                processUMKMData(results.data);
             } else {
-                updateStatus('Data kosong', 'text-red-600');
-                document.getElementById('loading').style.display = 'none';
+                showError('Data kosong atau tidak valid');
             }
         },
         error: function(error) {
-            console.error('Error loading data:', error);
-            updateStatus('Error loading', 'text-red-600');
-            document.getElementById('loading').style.display = 'none';
+            console.error('Error parsing CSV:', error);
+            showError('Gagal mengambil data: ' + error.message);
         }
     });
+}
+
+function processUMKMData(data) {
+    clearMarkersAndPolygons();
+    
+    let validLocations = 0;
+    let validAreas = 0;
+    const jenisCounter = new Set();
+    
+    data.forEach(function(row, index) {
+        // Coba berbagai kemungkinan nama kolom
+        const name = row['Name'] || row['name'] || row['Nama'] || row['nama'] || `UMKM ${index + 1}`;
+        const address = row['Address'] || row['address'] || row['Alamat'] || row['alamat'] || 'Alamat tidak tersedia';
+        const type = row['Jenis'] || row['type'] || row['jenis'] || row['kategori'] || row['Kategori'] || 'default';
+        const images = row['gambar'] || row['images'] || row['Gambar'] || row['foto'] || row['Foto'] || '';
+        const googleMapsLink = row['GoogleMaps'] || row['googlemaps'] || row['Google Maps'] || row['maps'] || '';
+        const lat = parseFloat(row['latitude'] || row['Latitude'] || row['Lat'] || row['lat']);
+        const lng = parseFloat(row['Longitude'] || row['longitude'] || row['Lng'] || row['lng'] || row['Long']);
+        const area = row['area'] || row['Area'] || row['polygon'] || row['Polygon'] || '';
+        
+        console.log(`Processing row ${index + 1}:`, { name, lat, lng, type, area: area ? 'yes' : 'no' });
+        
+        // Validasi koordinat
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+            addMarker(lat, lng, name, address, type, images, googleMapsLink);
+            validLocations++;
+            jenisCounter.add(type.toLowerCase());
+        }
+        
+        // Proses area polygon jika ada
+        if (area && area.trim()) {
+            const success = addPolygonArea(area, name, type, validAreas);
+            if (success) {
+                validAreas++;
+            }
+        }
+    });
+    
+    // Update statistik
+    document.getElementById('totalUMKM').textContent = data.length;
+    document.getElementById('totalLokasi').textContent = validLocations;
+    document.getElementById('totalJenis').textContent = jenisCounter.size;
+    document.getElementById('totalArea').textContent = validAreas;
+    document.getElementById('mapStatus').textContent = 'Ready';
+    
+    updateStatus(`${validLocations} lokasi, ${validAreas} area dimuat`, 'text-green-600');
+    updateLegend(jenisCounter);
+    
+    document.getElementById('loading').style.display = 'none';
+    
+    if (validLocations > 0) {
+        const group = new L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.1));
+    }
+}
+
+function showError(message) {
+    updateStatus('Error', 'text-red-600');
+    document.getElementById('mapStatus').textContent = 'Error';
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'flex';
+    
+    const errorDiv = document.querySelector('#errorMessage .bg-red-100 p');
+    if (errorDiv) {
+        errorDiv.textContent = message;
+    }
 }
 
 function addMarker(lat, lng, name, address, type, images, googleMapsLink) {
@@ -201,9 +245,131 @@ function addMarker(lat, lng, name, address, type, images, googleMapsLink) {
     markers.push(marker);
 }
 
+function addPolygonArea(areaString, name, type, colorIndex) {
+    try {
+        console.log('Processing area string:', areaString);
+        
+        const coordinates = areaString.split('|').map(coord => {
+            const cleanCoord = coord.trim().replace(/\s+/g, ' ');
+            const parts = cleanCoord.split(',').map(c => c.trim());
+            
+            if (parts.length < 2) {
+                throw new Error(`Invalid coordinate format: "${cleanCoord}" - needs lat,lng`);
+            }
+            
+            const lat = parseFloat(parts[0]);
+            const lng = parseFloat(parts[1]);
+            
+            console.log(`Parsing coordinate: "${cleanCoord}" -> lat: ${lat}, lng: ${lng}`);
+            
+            if (isNaN(lat) || isNaN(lng)) {
+                throw new Error(`Invalid coordinates: lat=${parts[0]}, lng=${parts[1]}`);
+            }
+            
+            if (Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+                throw new Error(`Coordinates out of valid range: lat=${lat}, lng=${lng}`);
+            }
+            
+            return [lat, lng];
+        }).filter(coord => coord);
+
+        console.log('Final coordinates array:', coordinates);
+
+        if (coordinates.length < 2) {
+            console.warn(`Area "${name}" needs at least 2 coordinates for a line/polygon. Got: ${coordinates.length}`);
+            return false;
+        }
+
+        const color = areaColors[colorIndex % areaColors.length];
+        const iconConfig = umkmIcons[type?.toLowerCase()] || umkmIcons.default;
+
+        console.log(`Creating ${coordinates.length === 2 ? 'polyline' : 'polygon'} for ${name} with ${coordinates.length} points and color ${color}`);
+
+        let shape;
+        let shapeType;
+        
+        if (coordinates.length === 2) {
+            shape = L.polyline(coordinates, {
+                color: color,
+                weight: 4,
+                opacity: 0.8,
+                className: 'area-polygon'
+            });
+            shapeType = 'Garis';
+        } else {
+            shape = L.polygon(coordinates, {
+                color: color,
+                fillColor: color,
+                weight: 2,
+                opacity: 0.9,
+                fillOpacity: 0.9,
+                className: 'area-polygon'
+            });
+            shapeType = 'Polygon';
+        }
+
+        shape.bindPopup(`
+            <div class="p-3">
+                <div class="flex items-center mb-2">
+                    <div class="bg-gray-100 p-1 rounded mr-2">
+                        <i class="fas ${iconConfig.icon}" style="color: ${iconConfig.color}"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 text-sm">Area: ${name}</h3>
+                        <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded capitalize">${type}</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">Area distribusi/cakupan layanan</p>
+                <div class="text-xs text-gray-500 mt-2 pt-2 border-t">
+                    <i class="fas ${coordinates.length === 2 ? 'fa-minus' : 'fa-draw-polygon'} mr-1"></i>
+                    ${shapeType} dengan ${coordinates.length} titik koordinat
+                </div>
+                <div class="text-xs text-gray-400 mt-1 max-h-20 overflow-y-auto">
+                    ${coordinates.map((coord, i) => `P${i+1}: ${coord[0].toFixed(4)}, ${coord[1].toFixed(4)}`).join('<br>')}
+                </div>
+            </div>
+        `, { maxWidth: 300, className: 'custom-popup' })
+        .addTo(map);
+
+        polygons.push(shape);
+        console.log(`${shapeType} successfully added to map with ${coordinates.length} coordinates`);
+        return true;
+
+    } catch (error) {
+        console.error('Error creating area shape for:', name, 'Error:', error.message);
+        console.error('Original area string:', areaString);
+        
+        // Tampilkan pesan error yang lebih detail untuk debugging
+        console.warn(`Area "${name}" skipped due to error: ${error.message}`);
+        return false;
+    }
+}
+
+function toggleAreas() {
+    areasVisible = !areasVisible;
+    const btn = document.getElementById('toggleAreasBtn');
+    
+    polygons.forEach(polygon => {
+        if (areasVisible) {
+            polygon.addTo(map);
+        } else {
+            map.removeLayer(polygon);
+        }
+    });
+    
+    btn.innerHTML = areasVisible ? 
+        '<i class="fas fa-eye-slash mr-1"></i>Sembunyikan Area' : 
+        '<i class="fas fa-eye mr-1"></i>Tampilkan Area';
+}
+
 function updateLegend(jenisSet) {
     const legendContainer = document.getElementById('legend');
     legendContainer.innerHTML = '';
+    
+    if (jenisSet.size === 0) {
+        legendContainer.innerHTML = '<div class="text-gray-500 italic">Tidak ada data jenis UMKM</div>';
+        return;
+    }
     
     Array.from(jenisSet).sort().forEach(jenis => {
         const iconConfig = umkmIcons[jenis.toLowerCase()] || umkmIcons.default;
@@ -230,24 +396,25 @@ function openImageModal(imageUrl, caption) {
     modalCaption.textContent = caption;
     
     modal.classList.remove('hidden');
-    
     document.body.style.overflow = 'hidden';
-    
     modal.focus();
 }
 
 function closeImageModal() {
     const modal = document.getElementById('imageModal');
     modal.classList.add('hidden');
-    
     document.body.style.overflow = 'auto';
 }
 
-function clearMarkers() {
+function clearMarkersAndPolygons() {
     markers.forEach(marker => {
         map.removeLayer(marker);
     });
+    polygons.forEach(polygon => {
+        map.removeLayer(polygon);
+    });
     markers = [];
+    polygons = [];
 }
 
 function updateStatus(message, className) {
@@ -258,6 +425,16 @@ function updateStatus(message, className) {
 
 function refreshData() {
     document.getElementById('loading').style.display = 'flex';
+    document.getElementById('errorMessage').style.display = 'none';
+    
+    document.getElementById('totalUMKM').textContent = '-';
+    document.getElementById('totalLokasi').textContent = '-';
+    document.getElementById('totalJenis').textContent = '-';
+    document.getElementById('totalArea').textContent = '-';
+    document.getElementById('mapStatus').textContent = 'Loading...';
+    
+    document.getElementById('legend').innerHTML = '<div class="text-gray-500 italic">Memuat data...</div>';
+    
     loadUMKMData();
 }
 
