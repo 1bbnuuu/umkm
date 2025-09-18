@@ -3,123 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peta UMKM Kalimantan Tengah dengan Area</title>
+    <title>Peta UMKM Kalimantan Tengah</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="src/css/style.css">
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="container mx-auto px-4 py-4">
-            <div class=" flex flex-col items-center justify-between">
-                <div class="flex flex-col text-center items-center space-x-3">
-                    <div class="bg-green-600 p-2 rounded-lg">
-                        <i class="fas fa-map-marked-alt text-white text-lg"></i>
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4 py-6">
+            <div class="text-center">
+                <div class="flex-col justify-center items-center space-x-3 mb-2">
+                    <div class="p-3">
+                        <i class="fas fa-map-marked-alt text-black text-4xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-gray-800">Peta UMKM Kalimantan Tengah</h1>
-                        <p class="text-gray-600 text-sm">Persebaran UMKM di Bumi Tambun Bungai</p>
+                        <h1 class="text-2xl font-bold text-gray-800">Peta UMKM Kalimantan Tengah</h1>
+                        <p class="text-gray-600">Persebaran UMKM di Bumi Tambun Bungai</p>
                     </div>
                 </div>
-                <div id="dataStatus" class="text-sm text-gray-600">
-                    <i class="fas fa-spinner fa-spin mr-1"></i>
-                    Loading data...
+                <div id="dataStatus" class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    Memuat data...
                 </div>
             </div>
         </div>
     </header>
 
     <div class="container mx-auto px-4 py-6">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
-                <div class="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <i class="fas fa-store text-green-600"></i>
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="stat-card rounded-lg p-4 text-center">
+                <div class="bg-emerald-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-store text-emerald-600 text-lg"></i>
                 </div>
-                <p class="text-gray-800 font-medium text-sm">Total Data</p>
-                <p id="totalUMKM" class="text-green-600 font-bold text-lg">-</p>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">Total</h3>
+                <p id="totalUMKM" class="text-2xl font-bold text-gray-800">-</p>
             </div>
             
-            <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
-                <div class="bg-yellow-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <i class="fas fa-map-pin text-yellow-600"></i>
+            <div class="stat-card rounded-lg p-4 text-center">
+                <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-map-pin text-blue-600 text-lg"></i>
                 </div>
-                <p class="text-gray-800 font-medium text-sm">Lokasi</p>
-                <p id="totalLokasi" class="text-yellow-600 font-bold text-lg">-</p>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">Lokasi</h3>
+                <p id="totalLokasi" class="text-2xl font-bold text-gray-800">-</p>
             </div>
             
-            <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
-                <div class="bg-purple-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <i class="fas fa-tags text-purple-600"></i>
+            <div class="stat-card rounded-lg p-4 text-center">
+                <div class="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-tags text-purple-600 text-lg"></i>
                 </div>
-                <p class="text-gray-800 font-medium text-sm">Jenis</p>
-                <p id="totalJenis" class="text-purple-600 font-bold text-lg">-</p>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">Jenis</h3>
+                <p id="totalJenis" class="text-2xl font-bold text-gray-800">-</p>
             </div>
             
-            <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
-                <div class="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <i class="fas fa-draw-polygon text-orange-600"></i>
+            <div class="stat-card rounded-lg p-4 text-center">
+                <div class="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-draw-polygon text-orange-600 text-lg"></i>
                 </div>
-                <p class="text-gray-800 font-medium text-sm">Area</p>
-                <p id="totalArea" class="text-orange-600 font-bold text-lg">-</p>
-            </div>
-            
-            <div class="bg-white rounded-lg shadow-sm p-4 text-center border border-gray-100">
-                <div class="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <i class="fas fa-chart-line text-blue-600"></i>
-                </div>
-                <p class="text-gray-800 font-medium text-sm">Status</p>
-                <p id="mapStatus" class="text-blue-600 font-bold text-lg">Loading...</p>
+                <h3 class="text-gray-600 text-sm font-medium mb-1">Area</h3>
+                <p id="totalArea" class="text-2xl font-bold text-gray-800">-</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-            <div class="flex items-center mb-3">
-                <i class="fas fa-palette text-green-600 mr-2"></i>
-                <h3 class="font-semibold text-gray-800">Jenis UMKM</h3>
+        <!-- Filter Section -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8" x-data="{ open: false }">
+            <div class="flex-col items-center justify-between mb-6">
+                <div class="flex justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-filter text-emerald-500 mr-3 text-lg"></i>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Filter</h3>
+                            <p class="text-sm text-gray-600">Pilih data yang ingin ditampilkan</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button x-on:click="open = ! open" 
+                            class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors flex items-center space-x-2">
+                            <span x-text="open ? 'Tutup' : 'Tampilkan'"></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-col space-y-2" x-show="open">
+                    <div class=" flex justify-end gap-3">
+                        <button onclick="selectAllFilters()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm rounded-lg transition-colors flex items-center space-x-2">
+                            <i class="fas fa-check-double"></i>
+                            <span>Pilih Semua</span>
+                        </button>
+                        <button onclick="clearAllFilters()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors flex items-center space-x-2">
+                            <i class="fas fa-times"></i>
+                            <span>Bersihkan</span>
+                        </button>
+                    </div>
+                    <div id="filterContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-4">
+                        <div class="text-gray-500 italic text-sm">Memuat filter...</div>
+                    </div>
+                </div>
             </div>
-            <div id="legend" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            
+            
+            <!-- Filter Stats -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-eye mr-2"></i>
+                        <span>Menampilkan <span id="visibleCount" class="font-semibold text-gray-800">0</span> dari <span id="totalCount" class="font-semibold text-gray-800">0</span> data</span>
+                    </div>
+                    <div class="flex items-center space-x-4 text-xs">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                            <span class="text-gray-600">Lokasi Pin</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                            <span class="text-gray-600">Area Cakupan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <div class="flex justify-between">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-palette text-emerald-500 mr-3 text-lg"></i>
+                    <h3 class="text-lg font-semibold text-gray-800">Simbol</h3>
+                </div>
+                <div>
+                                            <button x-on:click="open = ! open" 
+                            class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors flex items-center space-x-2">
+                            <span x-text="open ? 'Tutup' : 'Tampilkan'"></span>
+                        </button>
+                </div>
+            </div>
+            <div x-show="open" id="legend" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <div class="text-gray-500 italic">Memuat data...</div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-green-600 p-4 flex items-center justify-between">
-                <div>
-                    <h2 class="text-lg font-semibold text-white">Peta Lokasi UMKM & Area</h2>
-                    <p class="text-green-100 text-sm">Data real-time dari Google Sheets</p>
-                </div>
-                <div class="flex space-x-2">
-                    <button onclick="toggleAreas()" id="toggleAreasBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-white text-sm transition-colors">
-                        <i class="fas fa-eye mr-1"></i>
-                    </button>
-                    <button onclick="refreshData()" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-white text-sm transition-colors">
-                        <i class="fas fa-sync-alt mr-1"></i>
-                    </button>
+        <!-- Map Container -->
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-white mb-1">Peta Interaktif UMKM</h2>
+                        <p class="text-emerald-100">Data real-time dari Google Sheets</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button onclick="refreshData()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-white text-sm transition-colors flex items-center space-x-2">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             
             <div class="relative">
-                <div id="map" style="height: 500px; width: 100%;"></div>
+                <div id="map" style="height: 600px; width: 100%;"></div>
                 
-                <div id="loading" class="absolute inset-0 bg-gray-50 flex items-center justify-center z-10">
+                <!-- Loading State -->
+                <div id="loading" class="absolute inset-0 bg-white flex items-center justify-center z-10">
                     <div class="text-center">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
-                        <p class="text-gray-600 text-sm">Memuat peta dan data UMKM dari Google Sheets...</p>
+                        <div class="animate-spin rounded-full h-12 w-12 border-4 border-emerald-200 border-t-emerald-500 mx-auto mb-4"></div>
+                        <h3 class="font-semibold text-gray-800 mb-2">Memuat Peta UMKM</h3>
+                        <p class="text-gray-600 text-sm">Mengambil data dari Google Sheets...</p>
                     </div>
                 </div>
 
-                <div id="errorMessage" class="absolute inset-0 bg-gray-50 flex items-center justify-center z-10 hidden">
+                <!-- Error State -->
+                <div id="errorMessage" class="absolute inset-0 bg-white flex items-center justify-center z-10 hidden">
                     <div class="text-center max-w-md mx-4">
-                        <div class="bg-red-100 p-4 rounded-lg">
-                            <i class="fas fa-exclamation-triangle text-red-600 text-2xl mb-2"></i>
-                            <h3 class="font-bold text-red-800 mb-2">Gagal Memuat Data</h3>
-                            <p class="text-red-700 text-sm mb-4">Tidak dapat mengambil data dari Google Sheets. Periksa koneksi internet atau URL CSV.</p>
-                            <button onclick="refreshData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">
-                                <i class="fas fa-sync-alt mr-1"></i>
-                                Coba Lagi
+                        <div class="bg-red-50 border border-red-200 rounded-xl p-8">
+                            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                            </div>
+                            <h3 class="font-bold text-red-800 text-lg mb-2">Gagal Memuat Data</h3>
+                            <p class="text-red-700 mb-6">Tidak dapat mengambil data dari Google Sheets. Periksa koneksi internet.</p>
+                            <button onclick="refreshData()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2 mx-auto">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Coba Lagi</span>
                             </button>
                         </div>
                     </div>
@@ -127,49 +194,53 @@
             </div>
         </div>
 
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                <div class="flex items-center mb-3">
-                    <i class="fas fa-info-circle text-green-600 mr-2"></i>
+        <!-- Info Cards -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                        <i class="fas fa-info-circle text-blue-600"></i>
+                    </div>
                     <h3 class="font-semibold text-gray-800">Tentang Peta</h3>
                 </div>
                 <p class="text-gray-700 text-sm leading-relaxed">
-                    Peta ini mengambil data UMKM secara real-time dari Google Sheets.
+                    Peta interaktif yang menampilkan persebaran UMKM di Kalimantan Tengah dengan data real-time dari Google Sheets.
                 </p>
             </div>
             
-            <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                <div class="flex items-center mb-3">
-                    <i class="fas fa-mouse-pointer text-green-600 mr-2"></i>
-                    <h3 class="font-semibold text-gray-800">TIM</h3>
+            <div class="bg-white rounded-xl shadow-sm border p-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                        <i class="fas fa-users text-purple-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800">Tim Developer</h3>
                 </div>
-                <ul class="text-gray-700 text-sm space-y-1">
-                    <p>Ibnu-Josepha-Cleyrin-Megawati-Fernando</p>
-                </ul>
+                <p class="text-gray-700 text-sm">Ibnu • Josepha • Cleyrin • Megawati • Fernando</p>
             </div>
         </div>
     </div>
 
+    <!-- Image Modal -->
     <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden" style="z-index: 10000;">
         <div class="relative max-w-4xl max-h-screen p-4" style="z-index: 10001;">
-            <button onclick="closeImageModal()" class="absolute -top-2 -right-2 text-white bg-red-600 hover:bg-red-700 rounded-full w-10 h-10 flex items-center justify-center transition-colors shadow-lg" style="z-index: 10002;">
+            <button onclick="closeImageModal()" class="absolute -top-2 -right-2 text-white bg-red-500 hover:bg-red-600 rounded-full w-10 h-10 flex items-center justify-center transition-colors shadow-lg" style="z-index: 10002;">
                 <i class="fas fa-times text-lg"></i>
             </button>
-            <img id="modalImage" src="" alt="" class="max-w-full max-h-full object-contain rounded shadow-2xl">
+            <img id="modalImage" src="" alt="" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
             <p id="modalCaption" class="text-white text-center mt-4 text-lg font-medium"></p>
         </div>
     </div>
 
-    <footer class="bg-white border-t border-gray-200 mt-8 py-4">
-        <div class="container mx-auto px-4">
-            <div class="text-center">
-                <div class="flex justify-center items-center space-x-2 text-gray-600">
-                    <i class="fas fa-map-pin text-green-600"></i>
-                    <span class="text-sm">Peta UMKM Kalimantan Tengah © 2025</span>
-                </div>
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <div class="flex justify-center items-center space-x-2 text-gray-600">
+                <i class="fas fa-map-pin text-emerald-500"></i>
+                <span class="text-sm">Peta UMKM Kalimantan Tengah © 2025</span>
             </div>
         </div>
     </footer>
-    <script src="src/js/script.js"></script>
+
+<script src="src/js/script.js"></script>
 </body>
 </html>
