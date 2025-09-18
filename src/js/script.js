@@ -80,9 +80,14 @@ function parseCustomColor(colorInput) {
 function initMap() {
     map = L.map('map').setView([-2.2088, 113.9213], 12);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
+    // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //     attribution: '© OpenStreetMap contributors',
+    //     maxZoom: 18
+    // }).addTo(map);
+
+    L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        attribution: '© Google',
+        maxZoom: 20
     }).addTo(map);
     
     loadUMKMData();
