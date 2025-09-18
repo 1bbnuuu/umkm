@@ -358,8 +358,8 @@ function toggleAreas() {
     });
     
     btn.innerHTML = areasVisible ? 
-        '<i class="fas fa-eye-slash mr-1"></i>Sembunyikan Area' : 
-        '<i class="fas fa-eye mr-1"></i>Tampilkan Area';
+        '<i class="fas fa-eye-slash mr-1"></i>' : 
+        '<i class="fas fa-eye mr-1"></i>';
 }
 
 function updateLegend(jenisSet) {
